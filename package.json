@@ -1,0 +1,23 @@
+{
+  "name": "zodiac",
+  "version": "0.8.0",
+  "description": "A blockchain cryptocurrency because why not?",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EliTheCoder/zodiac.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/EliTheCoder/zodiac/issues"
+  },
+  "homepage": "https://github.com/EliTheCoder/zodiac#readme",
+  "dependencies": {
+    "crypto-js": "^3.1.9-1",
+    "openpgp": "^4.4.7"
+  }
+}
