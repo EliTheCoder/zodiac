@@ -1,2 +1,2 @@
 # zodiac
-A blockchain because why not?
+A blockchain cryptocurrency because why not?
