@@ -1,16 +1,28 @@
-const SHA512 = require("crypto-js/SHA512");
+const SHA256 = require("crypto-js/SHA256");
 
 class Block {
-  constructor(index, timestamp, data, nonce, previousHash = '') {
+  constructor(index, timestamp, data, previousHash = '') {
     this.index = index;
     this.timestamp = timestamp;
     this.data = data;
-    this.nonce = nonce;
+    this.nonce = 0;
     this.previousHash = previousHash;
     this.hash = '';
   }
-  calculateHash() {
-    return SHA512(this.index + this.previousHash + this.timestamp + this.nonce + JSON.stringify(this.data)).toString();
+  mine() {
+    let solved = false;
+    let nonce = 0;
+    let hash;
+    for (; !solved; i++) {
+      let hashAttempt = SHA256(this.index + this.previousHash + this.timestamp + this.nonce + JSON.stringify(this.data)).toString();
+      if (hashAttempt.startsWith("000")) {
+        solved = true;
+        hash = hashAttempt;
+      } else {
+        this.nonce++;
+      }
+    }
+    return {hash: hash, nonce: nonce};
   }
 }
 
@@ -20,7 +32,7 @@ class Blockchain {
   }
 
   createGenesisBlock() {
-    return new Block(0, new Date(), "Genesis", "0");
+    return new Block(0, new Date(), "Genesis");
   }
 
   getLatestBlock() {
@@ -29,8 +41,38 @@ class Blockchain {
 
   addBlock(newBlock) {
     newBlock.previousHash = this.getLatestBlock().hash;
-    newBlock.hash = newBlock.calculateHash();
+    newBlock.hash = newBlock.mine().hash;
     this.chain.push(newBlock);
+  }
+
+  verify() {
+    for (let i = 0; i < this.chain.length; i++) {
+      const currentBlock = this.chain[i];
+      const calculatedHash = SHA256(currentBlock.index + currentBlock.previousHash + currentBlock.timestamp + currentBlock.nonce + JSON.stringify(currentBlock.data)).toString();
+      const previousBlock = this.chain[i - 1];
+
+      if (currentBlock.hash !== calculatedHash) {
+        return {
+          integrity: false,
+          discrepancy: `zodiac block ${currentBlock.index}: hash is incorrect`
+        };
+      }
+
+      if (currentBlock.previousHash !== previousBlock.hash) {
+        return {
+          integrity: false,
+          discrepancy: `zodiac block ${currentBlock.index}: previous hash is incorrect`
+        };
+      }
+
+      if (!currentBlock.hash.startsWith("000")) {
+        return {
+          integrity: false,
+          discrepancy: `zodiac block ${currentBlock.index}: hash is not mined`
+        };
+      }
+
+    }
   }
 }
 
