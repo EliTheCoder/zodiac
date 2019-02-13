@@ -13,7 +13,7 @@ class Block {
     let solved = false;
     let nonce = 0;
     let hash;
-    for (; !solved; i++) {
+    while (!solved) {
       let hashAttempt = SHA256(this.index + this.previousHash + this.timestamp + this.nonce + JSON.stringify(this.data)).toString();
       if (hashAttempt.startsWith("000")) {
         solved = true;
@@ -22,7 +22,18 @@ class Block {
         this.nonce++;
       }
     }
-    return {hash: hash, nonce: nonce};
+    this.hash = hash;
+    return {
+      hash: hash,
+      nonce: this.nonce
+    };
+  }
+}
+
+class Bridge {
+  constructor(username, publicKey) {
+    this.username = username;
+    this.publicKey = publicKey;
   }
 }
 
@@ -32,7 +43,9 @@ class Blockchain {
   }
 
   createGenesisBlock() {
-    return new Block(0, new Date(), "Genesis");
+    let genesis = new Block(0, new Date(), "Genesis");
+    genesis.mine();
+    return genesis;
   }
 
   getLatestBlock() {
@@ -41,12 +54,12 @@ class Blockchain {
 
   addBlock(newBlock) {
     newBlock.previousHash = this.getLatestBlock().hash;
-    newBlock.hash = newBlock.mine().hash;
     this.chain.push(newBlock);
   }
 
   verify() {
-    for (let i = 0; i < this.chain.length; i++) {
+    let bridges = {};
+    for (let i = 0; i < this.chain.length - 1; i++) {
       const currentBlock = this.chain[i];
       const calculatedHash = SHA256(currentBlock.index + currentBlock.previousHash + currentBlock.timestamp + currentBlock.nonce + JSON.stringify(currentBlock.data)).toString();
       const previousBlock = this.chain[i - 1];
@@ -58,11 +71,22 @@ class Blockchain {
         };
       }
 
-      if (currentBlock.previousHash !== previousBlock.hash) {
-        return {
-          integrity: false,
-          discrepancy: `zodiac block ${currentBlock.index}: previous hash is incorrect`
-        };
+      if (currentBlock.data.bridges) {
+        /* jshint ignore:start */
+        currentBlock.data.bridges.forEach(bridge => {
+          if (bridges[bridge.username]) {
+            return {
+              integrity: false,
+              discrepancy: `zodiac block ${currentBlock.index}: username "${bridge.username}" previously bridged in zodiac block ${bridges[bridge.username].block}`
+            }
+          } else {
+            bridge[bridge.username] = {
+              publicKey: bridge.publicKey,
+              block: currentBlock.index
+            }
+          }
+        });
+        /* jshint ignore:end */
       }
 
       if (!currentBlock.hash.startsWith("000")) {
@@ -72,6 +96,16 @@ class Blockchain {
         };
       }
 
+      if (currentBlock.index === 0) return {
+        integrity: true
+      };
+
+      if (currentBlock.previousHash !== previousBlock.hash) {
+        return {
+          integrity: false,
+          discrepancy: `zodiac block ${currentBlock.index}: previous hash is incorrect`
+        };
+      }
     }
   }
 }
@@ -82,3 +116,5 @@ zodiac.addBlock(new Block(zodiac.getLatestBlock().index + 1, new Date(), {
 }));
 
 console.log(zodiac.chain);
+
+console.log(zodiac.verify());
