@@ -2,13 +2,16 @@ const SHA256 = require("crypto-js/SHA256");
 const eliapi = require("eliapi");
 
 class Block {
-  constructor(index, data, previousHash = '') {
+  constructor(index, data, timestamp = new Date() / 1, previousHash = '') {
     this.index = index;
-    this.timestamp = new Date() / 1;
+    this.timestamp = timestamp;
     this.data = data;
     this.nonce = 0;
     this.previousHash = previousHash;
     this.hash = '';
+  }
+  getData() {
+    return this.index + this.previousHash + this.timestamp + JSON.stringify(this.data);
   }
   mine(initialNonce) {
     if (initialNonce) {
@@ -16,14 +19,28 @@ class Block {
     } else {
       this.nonce = 0;
     }
+    let counter = 0;
+    let aps = 0;
+    let recording = true;
     let solved = false;
     let hash;
     while (!solved) {
-      let hashAttempt = SHA256(this.index + this.previousHash + this.timestamp + this.nonce + JSON.stringify(this.data)).toString();
+      let hashAttempt = SHA256(this.index + this.previousHash + this.timestamp + JSON.stringify(this.data) + this.nonce).toString();
+      counter++;
+      if (recording) {
+        recording = false;
+        /* jshint ignore:start */
+        setTimeout(() => {
+          aps = counter;
+          counter = 0;
+          recording = true;
+        }, 1000);
+        /* jshint ignore:end */
+      }
       if (this.nonce % 1000 === 0) {
         process.stdout.clearLine();
         process.stdout.cursorTo(0);
-        process.stdout.write(`[zodiac block ${this.index}] mine attempt ${this.nonce}: ${hashAttempt.substring(0,7)}`);
+        process.stdout.write(`[zodiac block ${this.index}] mine attempt ${this.nonce}: ${hashAttempt.substring(0,7)} (${aps} attempts per second)`);
       }
       if (hashAttempt.startsWith("0000000")) {
         solved = true;
@@ -37,6 +54,15 @@ class Block {
       hash: hash,
       nonce: this.nonce
     };
+  }
+}
+
+class Reward {
+  constructor(username, index, nonce) {
+    this.username = username;
+    this.index = index;
+    this.nonce = nonce;
+    this.timestamp = new Date() / 1;
   }
 }
 
@@ -76,7 +102,7 @@ class Blockchain {
   }
 
   addBlock(newBlock) {
-    newBlock.previousHash = this.getLatestBlock().hash;
+    if (newBlock.index !== 0) newBlock.previousHash = this.getLatestBlock().hash;
     this.chain.push(newBlock);
   }
 
@@ -135,6 +161,12 @@ class Blockchain {
 
 let zodiac = new Blockchain();
 
-console.log(zodiac.chain);
-
-console.log(zodiac.verify());
+let genesis = new Block(0, {
+  transactions: [],
+  bridges: []
+}, 1550111997313);
+console.log(genesis);
+console.log(genesis.getData());
+genesis.mine(process.argv[2]);
+console.log("\n" + JSON.stringify(genesis));
+zodiac.addBlock(genesis);
