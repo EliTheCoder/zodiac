@@ -18,6 +18,7 @@
   "homepage": "https://github.com/EliTheCoder/zodiac#readme",
   "dependencies": {
     "crypto-js": "^3.1.9-1",
+    "eliapi": "0.0.5",
     "openpgp": "^4.4.7"
   }
 }

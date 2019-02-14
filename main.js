@@ -1,21 +1,31 @@
 const SHA256 = require("crypto-js/SHA256");
+const eliapi = require("eliapi");
 
 class Block {
-  constructor(index, timestamp, data, previousHash = '') {
+  constructor(index, data, previousHash = '') {
     this.index = index;
-    this.timestamp = timestamp;
+    this.timestamp = new Date() / 1;
     this.data = data;
     this.nonce = 0;
     this.previousHash = previousHash;
     this.hash = '';
   }
-  mine() {
+  mine(initialNonce) {
+    if (initialNonce) {
+      this.nonce = parseInt(initialNonce);
+    } else {
+      this.nonce = 0;
+    }
     let solved = false;
-    let nonce = 0;
     let hash;
     while (!solved) {
       let hashAttempt = SHA256(this.index + this.previousHash + this.timestamp + this.nonce + JSON.stringify(this.data)).toString();
-      if (hashAttempt.startsWith("000")) {
+      if (this.nonce % 1000 === 0) {
+        process.stdout.clearLine();
+        process.stdout.cursorTo(0);
+        process.stdout.write(`[zodiac block ${this.index}] mine attempt ${this.nonce}: ${hashAttempt.substring(0,7)}`);
+      }
+      if (hashAttempt.startsWith("0000000")) {
         solved = true;
         hash = hashAttempt;
       } else {
@@ -37,14 +47,27 @@ class Bridge {
   }
 }
 
+class Transaction {
+  constructor(sender, recipient, amount, signature) {
+    this.sender = sender;
+    this.recipient = recipient;
+    this.amount = amount;
+    this.signature = signature;
+  }
+}
+
 class Blockchain {
   constructor() {
-    this.chain = [this.createGenesisBlock()];
+    this.chain = [];
   }
 
-  createGenesisBlock() {
-    let genesis = new Block(0, new Date(), "Genesis");
-    genesis.mine();
+  createGenesisBlock(initialNonce) {
+    let genesis = new Block(0, {
+      transactions: [],
+      bridges: []
+    });
+    genesis.mine(initialNonce);
+    this.addBlock(genesis);
     return genesis;
   }
 
@@ -89,7 +112,7 @@ class Blockchain {
         /* jshint ignore:end */
       }
 
-      if (!currentBlock.hash.startsWith("000")) {
+      if (!currentBlock.hash.startsWith("0000000")) {
         return {
           integrity: false,
           discrepancy: `zodiac block ${currentBlock.index}: hash is not mined`
@@ -111,9 +134,6 @@ class Blockchain {
 }
 
 let zodiac = new Blockchain();
-zodiac.addBlock(new Block(zodiac.getLatestBlock().index + 1, new Date(), {
-  amount: 10
-}));
 
 console.log(zodiac.chain);
 
