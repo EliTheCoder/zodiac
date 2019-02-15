@@ -19,9 +19,6 @@ class Block {
     } else {
       this.nonce = 0;
     }
-    let counter = 0;
-    let aps = 0;
-    let recording = true;
     let solved = false;
     let hash;
     while (!solved) {
